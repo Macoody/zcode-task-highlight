@@ -1,63 +1,109 @@
 #!/bin/bash
-# zcode-task-highlight 一键安装
-# 用法: ./apply.sh   （ZCode 升级后重新运行一次即可）
+# zcode-task-highlight 一键安装（支持 ZCode 与 ChatGPT/Codex）
+# 用法: ./apply.sh [zcode|chatgpt|all]    默认 all
+# 应用升级后重新运行一次即可（自动按版本备份，可重复运行）
 set -euo pipefail
 
-APP="/Applications/ZCode.app"
-ASAR="$APP/Contents/Resources/app.asar"
-UNPACKED="$APP/Contents/Resources/app.asar.unpacked"
+MARK="zcode-ui-patch-v6"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 INJ="$DIR/injector.js"
-MARK="zcode-ui-patch-v6"
 
-command -v npx >/dev/null 2>&1 || { echo "❌ 需要 Node.js（未找到 npx）: https://nodejs.org"; exit 1; }
-command -v codesign >/dev/null 2>&1 || { echo "❌ 需要 Xcode Command Line Tools: xcode-select --install"; exit 1; }
-[ -d "$APP" ] || { echo "❌ 未找到 $APP"; exit 1; }
-[ -f "$INJ" ] || { echo "❌ 未找到 injector.js（请在仓库目录内运行）"; exit 1; }
+app_config() {
+  case "$1" in
+    zcode)
+      APP_NAME="ZCode"; APP="/Applications/ZCode.app"
+      HTML="out/renderer/index.html"; SECONDARY_GLOB="out/renderer/assets/styles-*.js"
+      UNPACK_GLOB="*{.node,-helper,.dylib,.so}"; UNPACK_DIR=""
+      ;;
+    chatgpt)
+      APP_NAME="ChatGPT (Codex GUI)"; APP="/Applications/ChatGPT.app"
+      HTML="webview/index.html"; SECONDARY_GLOB="webview/assets/app-primary-*.js"
+      UNPACK_GLOB="*{.node,.dylib,.so,.dll}"; UNPACK_DIR="node_modules"
+      ;;
+    *) echo "❌ 未知应用: $1（可选 zcode|chatgpt|all）"; exit 1 ;;
+  esac
+}
 
-VERSION=$(defaults read "$APP/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo unknown)
-echo "ZCode 版本: $VERSION"
+patch_app() {
+  local KEY="$1"
+  app_config "$KEY"
+  local ASAR="$APP/Contents/Resources/app.asar"
+  local UNPACKED="$APP/Contents/Resources/app.asar.unpacked"
 
-WORK=$(mktemp -d /tmp/zcode-task-highlight.XXXXXX)
-trap 'rm -rf "$WORK"' EXIT
+  command -v npx >/dev/null 2>&1 || { echo "❌ 需要 Node.js（未找到 npx）: https://nodejs.org"; exit 1; }
+  command -v codesign >/dev/null 2>&1 || { echo "❌ 需要 Xcode Command Line Tools: xcode-select --install"; exit 1; }
+  [ -d "$APP" ] || { echo "⚠️ 未安装 $APP_NAME，跳过"; return 0; }
+  [ -f "$INJ" ] || { echo "❌ 未找到 injector.js（请在仓库目录内运行）"; exit 1; }
 
-echo "📦 解包 app.asar ..."
-npx --yes @electron/asar extract "$ASAR" "$WORK/app"
+  local VERSION
+  VERSION=$(defaults read "$APP/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo unknown)
+  echo "── $APP_NAME 版本 $VERSION ──"
 
-ENTRY=$(ls "$WORK"/app/out/renderer/assets/index-*.js 2>/dev/null | head -1)
-[ -n "$ENTRY" ] || { echo "❌ 未找到入口 JS 包，可能是不兼容的版本，未做任何修改"; exit 1; }
-
-PATCHED=0
-for f in "$ENTRY" $(ls "$WORK"/app/out/renderer/assets/styles-*.js 2>/dev/null | head -1); do
-  [ -n "$f" ] || continue
-  if grep -q "$MARK" "$f"; then
-    echo "✔ 已含补丁: $(basename "$f")"
-  else
-    cat "$INJ" >> "$f"
-    PATCHED=$((PATCHED+1))
-    echo "✔ 注入: $(basename "$f")"
+  if grep -aq "$MARK" "$ASAR" 2>/dev/null; then
+    echo "✔ 补丁已存在，无需修改"
+    return 0
   fi
-done
 
-if [ "$PATCHED" = "0" ]; then echo "✅ 补丁已存在，无需修改"; exit 0; fi
+  local WORK
+  WORK=$(mktemp -d /tmp/task-highlight.XXXXXX)
 
-BAK="$DIR/app.asar.$VERSION.bak"
-if [ ! -f "$BAK" ]; then
-  cp "$ASAR" "$BAK"
-  cp -R "$UNPACKED" "$DIR/app.asar.unpacked.$VERSION.bak" 2>/dev/null || true
-  echo "💾 原版已备份: $(basename "$BAK")"
+  echo "📦 解包 app.asar ..."
+  npx --yes @electron/asar extract "$ASAR" "$WORK/app" || { echo "❌ 解包失败"; rm -rf "$WORK"; exit 1; }
+
+  # 入口 JS：从渲染页 HTML 里解析 <script src>
+  local HTML_PATH="$WORK/app/$HTML" ENTRY_REL
+  [ -f "$HTML_PATH" ] || { echo "❌ 未找到 $HTML，可能是不兼容的版本，未做任何修改"; rm -rf "$WORK"; exit 1; }
+  ENTRY_REL=$(grep -o 'src="[^"]*\.js"' "$HTML_PATH" | head -1 | sed 's/src="//;s/"$//')
+  local ENTRY="$WORK/app/$(dirname "$HTML")/${ENTRY_REL#./}"
+  [ -f "$ENTRY" ] || { echo "❌ 未找到入口 JS，未做任何修改"; rm -rf "$WORK"; exit 1; }
+
+  # 次级包：同名 glob 里最大的文件（主应用包）
+  local SECONDARY
+  SECONDARY=$(ls -S $WORK/app/$SECONDARY_GLOB 2>/dev/null | head -1 || true)
+
+  local TARGETS=("$ENTRY")
+  [ -n "$SECONDARY" ] && TARGETS+=("$SECONDARY")
+  for f in "${TARGETS[@]}"; do
+    cat "$INJ" >> "$f"
+    echo "✔ 注入: ${f#$WORK/app/}"
+  done
+
+  local BKDIR="$DIR/backups-$KEY"
+  mkdir -p "$BKDIR"
+  if [ ! -f "$BKDIR/app.asar.$VERSION.bak" ]; then
+    cp "$ASAR" "$BKDIR/app.asar.$VERSION.bak"
+    cp -R "$UNPACKED" "$BKDIR/app.asar.unpacked.$VERSION.bak" 2>/dev/null || true
+    echo "💾 原版已备份（$VERSION）"
+  fi
+
+  echo "📦 重新打包 ..."
+  local PACK_ARGS=(pack "$WORK/app" "$WORK/app-patched.asar" --unpack "$UNPACK_GLOB")
+  [ -n "$UNPACK_DIR" ] && PACK_ARGS+=(--unpack-dir "$UNPACK_DIR")
+  npx --yes @electron/asar "${PACK_ARGS[@]}"
+
+  rm -rf "$UNPACKED.new"
+  if [ -d "$WORK/app-patched.asar.unpacked" ]; then
+    cp -R "$WORK/app-patched.asar.unpacked" "$UNPACKED.new"
+  fi
+  cp "$WORK/app-patched.asar" "$ASAR.new"
+  mv -f "$ASAR.new" "$ASAR"
+  if [ -d "$UNPACKED.new" ]; then
+    rm -rf "$UNPACKED.old"
+    mv "$UNPACKED" "$UNPACKED.old" 2>/dev/null || true
+    mv "$UNPACKED.new" "$UNPACKED"
+    rm -rf "$UNPACKED.old"
+  fi
+  rm -rf "$WORK"
+
+  echo "✍️ 重新签名 ..."
+  codesign --force --deep -s - "$APP" || { echo "❌ 签名失败，请运行 ./rollback.sh $KEY 恢复"; exit 1; }
+  echo "✅ $APP_NAME 完成！请完全退出该应用后重新打开。"
+}
+
+TARGET="${1:-all}"
+if [ "$TARGET" = "all" ]; then
+  patch_app zcode
+  patch_app chatgpt
+else
+  patch_app "$TARGET"
 fi
-
-echo "📦 重新打包 ..."
-npx --yes @electron/asar pack "$WORK/app" "$WORK/app-patched.asar" --unpack "*{.node,-helper,.dylib,.so}"
-
-mv -f "$WORK/app-patched.asar" "$ASAR"
-rm -rf "$UNPACKED"
-cp -R "$WORK/app-patched.asar.unpacked" "$UNPACKED"
-
-echo "✍️ 重新签名 ..."
-codesign --force --deep -s - "$APP" || { echo "❌ 签名失败，请运行 ./rollback.sh 恢复"; exit 1; }
-
-echo ""
-echo "✅ 完成！请完全退出 ZCode（Cmd+Q）后重新打开。"
-echo "   运行中任务 = 蓝色高亮；完成后 = 绿色高亮（点击该任务清除）。"
