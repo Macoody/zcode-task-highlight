@@ -4,7 +4,7 @@
 # 应用升级后重新运行一次即可（自动按版本备份，可重复运行）
 set -euo pipefail
 
-MARK="zcode-ui-patch-v7"
+MARK="zcode-ui-patch-v8-static"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 INJ="$DIR/injector.js"
 
@@ -17,7 +17,7 @@ app_config() {
       ;;
     chatgpt)  # 实验性：曾导致崩溃循环，出问题用 ./rollback.sh chatgpt
       APP_NAME="ChatGPT (Codex GUI) [实验性]"; APP="/Applications/ChatGPT.app"
-      HTML="webview/index.html"; SECONDARY_GLOB="webview/assets/app-primary-*.js"
+      HTML="webview/index.html"; SECONDARY_GLOB=""
       UNPACK_GLOB="*{.node,.dylib,.so,.dll}"; UNPACK_DIR="node_modules"
       ;;
     *) echo "❌ 未知应用: $1（可选 zcode|chatgpt|all）"; exit 1 ;;
@@ -75,8 +75,10 @@ patch_app() {
   [ -f "$ENTRY" ] || { echo "❌ 未找到入口 JS，未做任何修改"; rm -rf "$WORK"; exit 1; }
 
   # 次级包：同名 glob 里最大的文件（主应用包）
-  local SECONDARY
-  SECONDARY=$(ls -S $WORK/app/$SECONDARY_GLOB 2>/dev/null | head -1 || true)
+  local SECONDARY=""
+  if [ -n "$SECONDARY_GLOB" ]; then
+    SECONDARY=$(ls -S "$WORK/app"/$SECONDARY_GLOB 2>/dev/null | head -1 || true)
+  fi
 
   local TARGETS=("$ENTRY")
   [ -n "$SECONDARY" ] && TARGETS+=("$SECONDARY")

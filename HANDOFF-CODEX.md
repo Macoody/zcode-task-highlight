@@ -16,7 +16,7 @@
 | 项 | 状态 |
 |---|---|
 | ZCode.app | ✅ v7 已安装稳定（勿动，用户在用） |
-| ChatGPT.app v26.901.51231 | 已回滚到原版，无补丁，正常可用 |
+| ChatGPT.app v26.901.51231 | 已回滚到原版，无补丁，正常可用（注意下方第二次事故说明） |
 | 原版备份 | `backups-chatgpt/app.asar.26.901.51231.bak` + `app.asar.unpacked.26.901.51231.bak`（勿删） |
 | 自动守护 | 只盯 ZCode；ChatGPT 已被摘除（原因见事故复盘） |
 | 仓库工具 | `apply.sh chatgpt` / `rollback.sh chatgpt` 可直接使用 |
@@ -39,6 +39,8 @@
 2. **v7 注入版**（v6 + 流水灯动画 CSS + 哨兵注释 + 守卫从 truthy 改为 `=== 'v7'`）：23:32 部署，启动自检通过，**23:39–23:40 用户首次打开 Codex 视图后崩溃循环**（60 秒内 6 份崩溃报告，主进程 V8 EXC_BREAKPOINT，栈在 `Codex Framework` 的 node/V8 内部，符号混乱无法定位直接原因）。已回滚。
 
 v6 与 v7 的**全部代码差异**就三处：① CSS 增加了 keyframes 动画与 media query 字符串；② 注入器首尾加了 `/*TASK-HIGHLIGHT-INJECTOR-START*/` 哨兵注释；③ 运行守卫从 `if (window.__zcodeRunningHL)` 改为 `if (window.__zcodeRunningHL === 'v7')`。
+
+**第二次事故（00:19）**：v7 首次崩溃后，旧版守护曾挂出一个"应用退出后自动补打"的等待器；人工摘除 chatgpt 支持时没有杀掉这个已派出的等待器进程，导致用户退出 ChatGPT 后它又把 v7 打回去、再次崩溃循环。已清理等待器、删除锁目录，现在 watch.sh 完全不检查 chatgpt，等待器不可能再为它生成。**教训：凡是给某应用摘除支持，先检查是否有存活的后台等待器（ps 里搜 task-highlight-watch-locks）。**
 
 未定位的疑点：崩溃发生在主进程/Node 侧（`node::PrincipalRealm` 等帧），而注入器是纯浏览器 DOM 代码且整体 try/catch 包裹——理论上不该崩主进程。怀疑方向：`app-primary-*.js` 可能同时被 Codex 的 Node 服务进程（app-server）加载，v7 的某处变更在该上下文触发了 V8 级问题；或与 Codex 视图首次加载的时序有关。**v6 稳定、v7 崩溃，差异极小——这是最关键的实验线索。**
 
