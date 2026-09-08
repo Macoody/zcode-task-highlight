@@ -4,7 +4,7 @@
 # 应用升级后重新运行一次即可（自动按版本备份，可重复运行）
 set -euo pipefail
 
-MARK="zcode-ui-patch-v6"
+MARK="zcode-ui-patch-v7"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 INJ="$DIR/injector.js"
 
@@ -22,6 +22,23 @@ app_config() {
       ;;
     *) echo "❌ 未知应用: $1（可选 zcode|chatgpt|all）"; exit 1 ;;
   esac
+}
+
+# 剥离文件尾部已存在的注入器（v7+ 有哨兵注释；v6 旧格式按特征定位）
+strip_old_injector() {
+  node -e '
+    const fs = require("fs");
+    const p = process.argv[1];
+    let s = fs.readFileSync(p, "utf8");
+    const cutFrom = (idx) => { s = s.slice(0, idx).replace(/\n+$/, "\n"); fs.writeFileSync(p, s); };
+    const i = s.lastIndexOf("/*TASK-HIGHLIGHT-INJECTOR-START*/");
+    if (i >= 0) { cutFrom(i); process.exit(0); }
+    const j = s.lastIndexOf("if (window.__zcodeRunningHL)");
+    if (j >= 0) {
+      const k = s.lastIndexOf(";(function(){", j);
+      if (k >= 0) cutFrom(k);
+    }
+  ' "$1" 2>/dev/null || true
 }
 
 patch_app() {
@@ -64,6 +81,7 @@ patch_app() {
   local TARGETS=("$ENTRY")
   [ -n "$SECONDARY" ] && TARGETS+=("$SECONDARY")
   for f in "${TARGETS[@]}"; do
+    strip_old_injector "$f"
     cat "$INJ" >> "$f"
     echo "✔ 注入: ${f#$WORK/app/}"
   done

@@ -3,7 +3,7 @@
 # 逻辑：应用更新会覆盖补丁 → 检测 app.asar 中补丁标记消失 → 应用未运行时自动重新打补丁
 REPO="$(cd "$(dirname "$0")" && pwd)"
 LOG="$HOME/.task-highlight-watch.log"
-MARK="zcode-ui-patch-v6"
+MARK="zcode-ui-patch-v7"
 
 check_app() {
   local KEY="$1" APP
