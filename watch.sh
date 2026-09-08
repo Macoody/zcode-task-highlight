@@ -45,5 +45,4 @@ check_app() {
   fi
 }
 
-check_app zcode
-check_app chatgpt
+check_app zcode  # chatgpt 为实验性支持，不进自动守护（v7 曾致其崩溃循环）

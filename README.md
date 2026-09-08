@@ -17,8 +17,8 @@
 
 | 应用 | 实测版本 | 说明 |
 |---|---|---|
-| ZCode | 3.11.2 (macOS arm64) | |
-| ChatGPT（内嵌 Codex GUI） | 26.901.51231 (macOS arm64) | 更新频繁，建议装自动恢复守护 |
+| ZCode | 3.11.2 (macOS arm64) | 默认安装目标，稳定 |
+| ChatGPT（内嵌 Codex GUI） | 26.901.51231 (macOS arm64) | ⚠️ 实验性：v7 注入版曾触发崩溃循环，已默认关闭；需手动 `./apply.sh chatgpt`，出问题 `./rollback.sh chatgpt` |
 
 ## 安装
 
@@ -27,7 +27,7 @@
 ```bash
 git clone https://github.com/Macoody/zcode-task-highlight.git
 cd zcode-task-highlight
-./apply.sh            # 给所有支持的应用打补丁
+./apply.sh            # 给 ZCode 打补丁（默认且稳定）
 ./install-watch.sh    # （推荐）安装自动恢复守护
 ```
 

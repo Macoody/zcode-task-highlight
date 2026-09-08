@@ -15,8 +15,8 @@ app_config() {
       HTML="out/renderer/index.html"; SECONDARY_GLOB="out/renderer/assets/styles-*.js"
       UNPACK_GLOB="*{.node,-helper,.dylib,.so}"; UNPACK_DIR=""
       ;;
-    chatgpt)
-      APP_NAME="ChatGPT (Codex GUI)"; APP="/Applications/ChatGPT.app"
+    chatgpt)  # 实验性：曾导致崩溃循环，出问题用 ./rollback.sh chatgpt
+      APP_NAME="ChatGPT (Codex GUI) [实验性]"; APP="/Applications/ChatGPT.app"
       HTML="webview/index.html"; SECONDARY_GLOB="webview/assets/app-primary-*.js"
       UNPACK_GLOB="*{.node,.dylib,.so,.dll}"; UNPACK_DIR="node_modules"
       ;;
@@ -121,7 +121,6 @@ patch_app() {
 TARGET="${1:-all}"
 if [ "$TARGET" = "all" ]; then
   patch_app zcode
-  patch_app chatgpt
 else
   patch_app "$TARGET"
 fi

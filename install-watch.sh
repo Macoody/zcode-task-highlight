@@ -16,7 +16,6 @@ cat > "$PLIST" <<EOF
   <key>WatchPaths</key>
   <array>
     <string>/Applications/ZCode.app/Contents/Resources/app.asar</string>
-    <string>/Applications/ChatGPT.app/Contents/Resources/app.asar</string>
   </array>
   <key>StartInterval</key><integer>3600</integer>
   <key>RunAtLoad</key><true/>
