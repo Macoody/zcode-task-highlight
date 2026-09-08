@@ -37,7 +37,7 @@ cd zcode-task-highlight
 
 ### 自动恢复守护（推荐）
 
-两个应用（尤其 ChatGPT）更新后会覆盖补丁。`install-watch.sh` 安装一个每 5 分钟检查的 LaunchAgent：发现补丁消失且应用未在运行时，**自动重新打补丁并弹系统通知**，日志在 `~/.task-highlight-watch.log`。卸载守护：
+两个应用（尤其 ChatGPT）更新后会覆盖补丁。`install-watch.sh` 安装一个基于 WatchPaths 的事件驱动 LaunchAgent（app.asar 变化时系统唤醒，另加每小时兜底）：发现补丁消失时，应用未运行则立即恢复，应用在运行则在其退出后 1 分钟内恢复并弹系统通知：发现补丁消失且应用未在运行时，**自动重新打补丁并弹系统通知**，日志在 `~/.task-highlight-watch.log`。卸载守护：
 
 ```bash
 launchctl unload ~/Library/LaunchAgents/com.macoody.task-highlight.watch.plist
