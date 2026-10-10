@@ -4,10 +4,11 @@
 #   1. 补丁标记在 → 什么都不做，退出
 #   2. 标记没了（应用更新覆盖）且应用未运行 → 立即重打补丁 + 系统通知
 #   3. 标记没了但应用在运行 → 派一个后台等待器，应用退出后 1 分钟内自动补打
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH"
 REPO="$(cd "$(dirname "$0")" && pwd)"
 LOG="$HOME/.task-highlight-watch.log"
 LOCKDIR="$HOME/.task-highlight-watch-locks"
-MARK="zcode-ui-patch-v7"
+MARK="zcode-ui-patch-v9"
 mkdir -p "$LOCKDIR"
 
 check_app() {

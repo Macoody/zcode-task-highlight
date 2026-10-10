@@ -2,9 +2,10 @@
 # zcode-task-highlight 一键安装（支持 ZCode 与 ChatGPT/Codex）
 # 用法: ./apply.sh [zcode|chatgpt|all]    默认 all
 # 应用升级后重新运行一次即可（自动按版本备份，可重复运行）
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH"
 set -euo pipefail
 
-MARK="zcode-ui-patch-v8-static"
+MARK="zcode-ui-patch-v9"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 INJ="$DIR/injector.js"
 
@@ -52,6 +53,13 @@ patch_app() {
   [ -d "$APP" ] || { echo "⚠️ 未安装 $APP_NAME，跳过"; return 0; }
   [ -f "$INJ" ] || { echo "❌ 未找到 injector.js（请在仓库目录内运行）"; exit 1; }
 
+  local MAIN_PROC="${APP##*/}"
+  MAIN_PROC="${MAIN_PROC%.app}"
+  if ps -axo command= | awk -v exe="$APP/Contents/MacOS/$MAIN_PROC" '$1 == exe { found=1 } END { exit found ? 0 : 1 }'; then
+    echo "❌ $APP_NAME 正在运行，拒绝替换 app.asar；请退出后再运行。"
+    exit 2
+  fi
+
   local VERSION
   VERSION=$(defaults read "$APP/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo unknown)
   echo "── $APP_NAME 版本 $VERSION ──"
@@ -93,7 +101,7 @@ patch_app() {
   if [ ! -f "$BKDIR/app.asar.$VERSION.bak" ]; then
     cp "$ASAR" "$BKDIR/app.asar.$VERSION.bak"
     cp -R "$UNPACKED" "$BKDIR/app.asar.unpacked.$VERSION.bak" 2>/dev/null || true
-    echo "💾 原版已备份（$VERSION）"
+    echo "💾 原版已备份 ${VERSION}"
   fi
 
   echo "📦 重新打包 ..."

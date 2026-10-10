@@ -67,3 +67,10 @@ v6 与 v7 的**全部代码差异**就三处：① CSS 增加了 keyframes 动�
 ## 附录：v6 注入器全文（已知在 ChatGPT 上稳定 3 小时的版本）
 
 与 `injector.js`（v7）的差异仅在本文件第四节列出的三处。最省事的做法：复制 `injector.js`，删掉首尾两行哨兵注释，把 CSS 换回静态版（`background-color:rgba(59,130,246,.22)!important` 替代动画相关四行），守卫改回 `if (window.__zcodeRunningHL) return; window.__zcodeRunningHL = 1;`，标记字符串可用 `zcode-ui-patch-v6`（注意同步 `apply.sh`/`watch.sh` 里的 MARK 常量，且 `apply.sh` 的旧注入器剥离逻辑对无哨兵的 v6 格式有兜底，能干净替换）。
+
+## 更新（2026-10-10）
+
+- ZCode 已升级至 3.14.5，共享注入器推进到 **v9**：在 v8-static 基础上加回流水灯动画，但**仅在 ZCode 渲染页启用**（检测 `location.href` 含 `/out/renderer/`；ChatGPT 的 webview 路径自动回退静态蓝，规避动画崩溃风险）
+- `apply.sh`/`watch.sh` 的 MARK 已同步为 `zcode-ui-patch-v9`；你后续改动注入器时请保持三方一致
+- LaunchAgent 环境无用户 PATH 的坑已在两个脚本顶部补 `export PATH="/opt/homebrew/bin:..."`
+- 脚本里避免 `$VAR` 紧贴全角括号（bash 会把 UTF-8 字节吞进变量名，已踩坑一次）

@@ -11,12 +11,12 @@ restore_app() {
     chatgpt) APP="/Applications/ChatGPT.app" ;;
   esac
   local BKDIR="$DIR/backups-$KEY"
-  local BAK=$(ls "$BKDIR"/app.asar.*.bak 2>/dev/null | sort -V | head -1)
+  local BAK=$(find "$BKDIR" -maxdepth 1 -type f -name 'app.asar.*.bak' -print -quit 2>/dev/null)
   if [ -z "$BAK" ]; then echo "⚠️ [$KEY] 未找到备份，跳过"; return 0; fi
   echo "🔄 [$KEY] 使用备份恢复: $(basename "$BAK")"
   cp "$BAK" "$APP/Contents/Resources/app.asar.new"
   mv -f "$APP/Contents/Resources/app.asar.new" "$APP/Contents/Resources/app.asar"
-  local UBAK=$(ls -d "$BKDIR"/app.asar.unpacked.*.bak 2>/dev/null | sort -V | head -1)
+  local UBAK=$(find "$BKDIR" -maxdepth 1 -type d -name 'app.asar.unpacked.*.bak' -print -quit 2>/dev/null)
   if [ -n "$UBAK" ]; then
     rm -rf "$APP/Contents/Resources/app.asar.unpacked"
     cp -R "$UBAK" "$APP/Contents/Resources/app.asar.unpacked"
