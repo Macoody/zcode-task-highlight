@@ -5,7 +5,7 @@
 export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH"
 set -euo pipefail
 
-MARK="zcode-ui-patch-v9"
+MARK="zcode-ui-patch-v10"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 INJ="$DIR/injector.js"
 

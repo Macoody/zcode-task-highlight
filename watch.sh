@@ -8,7 +8,7 @@ export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH"
 REPO="$(cd "$(dirname "$0")" && pwd)"
 LOG="$HOME/.task-highlight-watch.log"
 LOCKDIR="$HOME/.task-highlight-watch-locks"
-MARK="zcode-ui-patch-v9"
+MARK="zcode-ui-patch-v10"
 mkdir -p "$LOCKDIR"
 
 check_app() {

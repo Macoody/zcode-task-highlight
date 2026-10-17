@@ -74,3 +74,7 @@ v6 与 v7 的**全部代码差异**就三处：① CSS 增加了 keyframes 动�
 - `apply.sh`/`watch.sh` 的 MARK 已同步为 `zcode-ui-patch-v9`；你后续改动注入器时请保持三方一致
 - LaunchAgent 环境无用户 PATH 的坑已在两个脚本顶部补 `export PATH="/opt/homebrew/bin:..."`
 - 脚本里避免 `$VAR` 紧贴全角括号（bash 会把 UTF-8 字节吞进变量名，已踩坑一次）
+
+## 更新（2026-10-10 续）
+
+- v10：修复 ZCode 3.14.5 上"完成转绿"失效——完成瞬间 React 重建行元素，旧的"盯元素"过渡检测失效。改为**按标题集合**跟踪（上轮在跑、本轮不在=完成），greenPass 匹配也放宽为标题命中即可。MARK 同步 `zcode-ui-patch-v10`

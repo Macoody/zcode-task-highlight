@@ -1,6 +1,6 @@
 ;(function(){
   try{
-    if(window.__zcodeRunningHL==='v9') return; window.__zcodeRunningHL='v9';
+    if(window.__zcodeRunningHL==='v10') return; window.__zcodeRunningHL='v10';
     var HL='zcode-running-hl',GN='zcode-done-hl',LSKEY='zcode-done-map-v1';
     var CODEX_ROW='[data-app-action-sidebar-thread-row]',CODEX_TITLE='[data-app-action-sidebar-thread-title]';
     var LEGACY_ROW='[data-grouped-task-key],li,[role="button"],article,button';
@@ -13,9 +13,9 @@
       css += '@keyframes zcode-th-flow{0%{background-position:200% 0}100%{background-position:-200% 0}}';
       css += '@media (prefers-reduced-motion:reduce){.'+HL+'{animation:none!important;background-image:none!important;background-color:rgba(59,130,246,.22)!important}}';
     }
-    var st=document.createElement('style');st.id='zcode-ui-patch-v9-static';st.textContent=css;
+    var st=document.createElement('style');st.id='zcode-ui-patch-v10-static';st.textContent=css;
     (document.head||document.documentElement).appendChild(st);
-    var doneMap={};
+    var doneMap={}, runningTitles={}, dirty=0;
     try{doneMap=JSON.parse(localStorage.getItem(LSKEY)||'{}')||{};}catch(e){}
     function save(){try{
       var ks=Object.keys(doneMap);
@@ -69,27 +69,30 @@
       return out;
     }
     function scan(){
-      var spins=document.querySelectorAll('.animate-spin'),running=[],i,row,k;
-      for(i=0;i<spins.length&&running.length<300;i++){
-        row=rowOf(spins[i]);
-        if(isTaskRow(row)&&running.indexOf(row)<0)running.push(row);
-      }
-      var marked=document.querySelectorAll('.'+HL);
-      for(i=0;i<marked.length;i++){
-        row=marked[i];
-        if(running.indexOf(row)<0){k=keyOf(row);if(k){doneMap[k]=Date.now();save();}row.classList.remove(HL);}
-      }
+      var spins=document.querySelectorAll('.animate-spin'), i, row;
+      var running=[], cur={};
+      for(i=0;i<spins.length;i++){ row=rowOf(spins[i]); if(isTaskRow(row)&&running.indexOf(row)<0) running.push(row); }
       for(i=0;i<running.length;i++){
-        row=running[i];row.classList.remove(GN);clearDone(row);row.classList.add(HL);
+        row=running[i]; row.classList.remove(GN); row.classList.add(HL);
+        var t=titleOf(row);
+        if(t){ cur[t]=1; if(doneMap[t]!==undefined){ delete doneMap[t]; dirty=1; } }
       }
-      greenPass();
+      /* 完成检测：上一轮在跑、这一轮不在跑的标题 => 记入 doneMap */
+      for(var t2 in runningTitles){
+        if(!cur[t2] && doneMap[t2]===undefined){ doneMap[t2]=Date.now(); dirty=1; }
+      }
+      runningTitles=cur;
+      if(dirty){ save(); dirty=0; }
+      /* 清理残留 HL（元素仍在但已不转） */
+      var marked=document.querySelectorAll('.'+HL);
+      for(i=0;i<marked.length;i++){ if(running.indexOf(marked[i])<0) marked[i].classList.remove(HL); }
     }
     function greenPass(){
-      var list=rows();
-      for(var i=0;i<list.length;i++){
-        var row=list[i];
-        if(isDone(row)&&!row.classList.contains(HL))row.classList.add(GN);
-        else if(!isDone(row))row.classList.remove(GN);
+      var rows=document.querySelectorAll('[data-grouped-task-key],li,[role="button"]'), i, row, t;
+      for(i=0;i<rows.length;i++){
+        row=rows[i]; t=titleOf(row); if(!t) continue;
+        if(doneMap[t]!==undefined){ if(!row.classList.contains(HL)) row.classList.add(GN); }
+        else if(row.classList.contains(GN)) row.classList.remove(GN);
       }
     }
     document.addEventListener('click',function(ev){
