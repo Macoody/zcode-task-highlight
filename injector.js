@@ -15,7 +15,7 @@
     }
         var SEL='zcode-sel-hl';
     css += '.'+SEL+'{background-color:rgba(245,158,11,.24)!important;box-shadow:inset 3px 0 0 0 #f59e0b!important}';
-var st=document.createElement('style');st.id='zcode-ui-patch-v11-static';st.textContent=css;
+var st=document.createElement('style');st.id='zcode-ui-patch-v11b';st.textContent=css;
     (document.head||document.documentElement).appendChild(st);
     var doneMap={}, runningTitles={}, dirty=0;
     try{doneMap=JSON.parse(localStorage.getItem(LSKEY)||'{}')||{};}catch(e){}

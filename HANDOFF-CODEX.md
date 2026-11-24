@@ -84,3 +84,9 @@ v6 与 v7 的**全部代码差异**就三处：① CSS 增加了 keyframes 动�
 - 共享注入器升级 **v11**：新增选中任务高亮（琥珀色 `zcode-sel-hl`，检测行上原生 `bg-selected` 类），优先级 执行中>选中>已完成（applyStates 状态机保证单行单类）
 - 注意：4.0.0 侧栏行有 `data-task-item-key` 属性，applyStates 的行池已加入；行数上限 300，间隔 3s
 - 你此前的 v10 变体（CODEX_ROW 选择器、keyOf/isDone 键控）已保留合并，改动前请先读本文件
+
+## 更新（2026-11-23 续）
+
+- 用户已在应用内自升至 **4.0.0**，守护自动补丁成功（未需人工干预）。共享注入器升级 **v11b**：新增选中任务琥珀色高亮（`zcode-sel-hl`，检测行原生 `bg-selected`），状态优先级 执行中>选中>已完成，applyStates 状态机保证单行单类
+- 教训一则：apply.sh 旧 strip_old_injector（node 版）曾静默失败导致新旧注入器叠加，已重写为 python3 版并实测；剥离逻辑 = 从守卫 `window.__zcodeRunningHL` 往前找最近 `(function(){` 或 `!function(){` 起点整段截断
+- 语法校验注意：主 bundle 是 ES module，`new Function()` 校验必假阳性，要用 `node --check xxx.mjs`
