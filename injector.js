@@ -1,6 +1,6 @@
 ;(function(){
   try{
-    if(window.__zcodeRunningHL==='v20') return; window.__zcodeRunningHL='v20';
+    if(window.__zcodeRunningHL==='v21') return; window.__zcodeRunningHL='v21';
     var HL='zcode-running-hl',GN='zcode-done-hl',LSKEY='zcode-done-map-v1';
     var CODEX_ROW='[data-app-action-sidebar-thread-row]',CODEX_TITLE='[data-app-action-sidebar-thread-title]';
     var LEGACY_ROW='[data-grouped-task-key],li,[role="button"],article,button';
@@ -47,10 +47,10 @@
     css += '#zcode-hud .zh-empty{padding:6px 10px;color:#6b7280}';
     css += '@keyframes zh-pulse{0%,100%{opacity:1}50%{opacity:.35}}';
     var permAC=null,permKnown={},permInit=0,permFound={},permDismissed={};
-var st=document.createElement('style');st.id='zcode-ui-patch-v20';st.textContent=css;
+var st=document.createElement('style');st.id='zcode-ui-patch-v21';st.textContent=css;
     (document.head||document.documentElement).appendChild(st);
     var doneMap={}, runningTitles={}, dirty=0;
-    var VER='v20-dedupe',D={rows:0,spins:0,run:0,done:0,sel:0,crown:0,err1:'',err2:''};
+    var VER='v21-jump',D={rows:0,spins:0,run:0,done:0,sel:0,crown:0,err1:'',err2:''};
     var HUDR=[],HUDD=[],HUDT0=null,HUDel=null;
     try{doneMap=JSON.parse(localStorage.getItem(LSKEY)||'{}')||{};}catch(e){}
     function save(){try{
@@ -122,7 +122,7 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v20';st.textContent
       D.spins=spins.length;D.run=running.length;
       /* 完成检测：上一轮在跑、这一轮不在跑的标题 => 记入 doneMap */
       for(var t2 in runningTitles){
-        if(!cur[t2] && doneMap[t2]===undefined){ doneMap[t2]=Date.now(); dirty=1; }
+        if(!cur[t2] && doneMap[t2]===undefined && !(dismissTs[t2]>Date.now()-12000)){ doneMap[t2]=Date.now(); dirty=1; }
       }
       runningTitles=cur;
       if(dirty){ save(); dirty=0; }
@@ -153,11 +153,23 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v20';st.textContent
         }
       }catch(e){}
     }
+    var dismissTs={};
     function hudDismiss(t){
       delete doneMap[t]; delete doneMap['title:'+t]; save();
+      dismissTs[t]=Date.now();
+      var di=HUDD.indexOf(t); if(di>=0) HUDD.splice(di,1);
       var rows=document.querySelectorAll('.'+GN),i;
       for(i=0;i<rows.length;i++){ if(titleOf(rows[i])===t) rows[i].classList.remove(GN); }
       updateHUD();
+    }
+    function hudNavigate(t){
+      try{
+        var rows=document.querySelectorAll('.'+GN+',.'+HL),i,r=null;
+        for(i=0;i<rows.length;i++){ if(titleOf(rows[i])===t){ r=rows[i]; break; } }
+        if(!r){ var all=document.querySelectorAll('[data-task-item-key],[data-grouped-task-key]'); for(i=0;i<all.length;i++){ if(titleOf(all[i])===t){ r=all[i]; break; } } }
+        if(r){ r.click(); return true; }
+      }catch(e){}
+      return false;
     }
     function makeHUD(){
       if(HUDel||!document.body) return;
@@ -180,8 +192,10 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v20';st.textContent
       });
       var body=HUDel.querySelector('.zh-body');
       body.addEventListener('click',function(e){
-        var it=e.target.closest('.zh-done'); if(!it) return;
-        hudDismiss(it.getAttribute('data-t'));
+        var it=e.target.closest('.zh-item'); if(!it) return;
+        var t=it.getAttribute('data-t'); if(!t) return;
+        var jumped=hudNavigate(t);
+        if(it.classList.contains('zh-done')) hudDismiss(t);
       });
     }
     function updateHUD(){
@@ -191,7 +205,7 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v20';st.textContent
         if(cnt) cnt.textContent='⟳'+HUDR.length+' ✓'+HUDD.length;
         var body=HUDel.querySelector('.zh-body'); if(!body) return;
         var h='';
-        if(HUDR.length){ h+='<div class="zh-sec">执行中</div>'; for(var i=0;i<HUDR.length;i++) h+='<div class="zh-item zh-run"><span class="zh-dot"></span><span>'+HUDR[i].replace(/</g,'&lt;')+'</span></div>'; }
+        if(HUDR.length){ h+='<div class="zh-sec">执行中</div>'; for(var i=0;i<HUDR.length;i++) h+='<div class="zh-item zh-run" data-t="'+HUDR[i].replace(/"/g,'&quot;')+'"><span class="zh-dot"></span><span>'+HUDR[i].replace(/</g,'&lt;')+'</span></div>'; }
         if(HUDD.length){ h+='<div class="zh-sec">完成未读（点击清除）</div>'; for(var j=0;j<HUDD.length;j++) h+='<div class="zh-item zh-done" data-t="'+HUDD[j].replace(/"/g,'&quot;')+'"><span class="zh-dot"></span><span>'+HUDD[j].replace(/</g,'&lt;')+'</span></div>'; }
         if(!HUDR.length&&!HUDD.length) h='<div class="zh-empty">暂无执行中 / 未读任务</div>';
         body.innerHTML=h;
