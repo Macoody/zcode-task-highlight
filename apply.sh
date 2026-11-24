@@ -54,7 +54,8 @@ patch_app() {
 
   local MAIN_PROC="${APP##*/}"
   MAIN_PROC="${MAIN_PROC%.app}"
-  if ps -axo command= | awk -v exe="$APP/Contents/MacOS/$MAIN_PROC" '$1 == exe { found=1 } END { exit found ? 0 : 1 }'; then
+  # 双重守卫：完整路径匹配（旧版主进程）+ 进程名精确匹配（4.0.0+ 主进程命令行只剩裸名）
+  if ps -axo command= | awk -v exe="$APP/Contents/MacOS/$MAIN_PROC" '$1 == exe { found=1 } END { exit found ? 0 : 1 }' || pgrep -x "$MAIN_PROC" >/dev/null 2>&1; then
     echo "❌ $APP_NAME 正在运行，拒绝替换 app.asar；请退出后再运行。"
     exit 2
   fi
