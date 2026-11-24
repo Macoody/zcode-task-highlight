@@ -1,6 +1,6 @@
 ;(function(){
   try{
-    if(window.__zcodeRunningHL==='v19') return; window.__zcodeRunningHL='v19';
+    if(window.__zcodeRunningHL==='v20') return; window.__zcodeRunningHL='v20';
     var HL='zcode-running-hl',GN='zcode-done-hl',LSKEY='zcode-done-map-v1';
     var CODEX_ROW='[data-app-action-sidebar-thread-row]',CODEX_TITLE='[data-app-action-sidebar-thread-title]';
     var LEGACY_ROW='[data-grouped-task-key],li,[role="button"],article,button';
@@ -47,10 +47,10 @@
     css += '#zcode-hud .zh-empty{padding:6px 10px;color:#6b7280}';
     css += '@keyframes zh-pulse{0%,100%{opacity:1}50%{opacity:.35}}';
     var permAC=null,permKnown={},permInit=0,permFound={},permDismissed={};
-var st=document.createElement('style');st.id='zcode-ui-patch-v19';st.textContent=css;
+var st=document.createElement('style');st.id='zcode-ui-patch-v20';st.textContent=css;
     (document.head||document.documentElement).appendChild(st);
     var doneMap={}, runningTitles={}, dirty=0;
-    var VER='v19-hud',D={rows:0,spins:0,run:0,done:0,sel:0,crown:0,err1:'',err2:''};
+    var VER='v20-dedupe',D={rows:0,spins:0,run:0,done:0,sel:0,crown:0,err1:'',err2:''};
     var HUDR=[],HUDD=[],HUDT0=null,HUDel=null;
     try{doneMap=JSON.parse(localStorage.getItem(LSKEY)||'{}')||{};}catch(e){}
     function save(){try{
@@ -218,7 +218,9 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v19';st.textContent
         var sel=row.classList.contains('bg-selected');
         var done=!running&&isDone(row);
         if(sel)cSelC++;
+        var isRealRow = !!(row.getAttribute&&(row.getAttribute('data-task-item-key')||row.getAttribute('data-grouped-task-key')));
         var want = running?HL : done?GN : null;
+        if(!isRealRow) want = null;
         if(want===HL)cRun++;else if(want===GN)cDone++;
         var rt0=titleOf(row);
         if(want===HL&&rt0)HUDR.push(rt0);
@@ -242,6 +244,8 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v19';st.textContent
         if(pk&&!isPerm(row)&&permDismissed[pk]!==undefined){ delete permDismissed[pk]; }
       });
       D.rows=seen.size;D.run=cRun;D.done=cDone;D.sel=cSelC;D.crown=cCrown;
+      HUDR=HUDR.filter(function(t,i){return HUDR.indexOf(t)===i;});
+      HUDD=HUDD.filter(function(t,i){return HUDD.indexOf(t)===i;});
       var newly=[];
       for(var fk in permFound){
         if(permInit&&permKnown[fk]===undefined) newly.push(permFound[fk]);
