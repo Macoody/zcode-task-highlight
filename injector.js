@@ -1,6 +1,6 @@
 ;(function(){
   try{
-    if(window.__zcodeRunningHL==='v21') return; window.__zcodeRunningHL='v21';
+    if(window.__zcodeRunningHL==='v22') return; window.__zcodeRunningHL='v22';
     var HL='zcode-running-hl',GN='zcode-done-hl',LSKEY='zcode-done-map-v1';
     var CODEX_ROW='[data-app-action-sidebar-thread-row]',CODEX_TITLE='[data-app-action-sidebar-thread-title]';
     var LEGACY_ROW='[data-grouped-task-key],li,[role="button"],article,button';
@@ -47,10 +47,10 @@
     css += '#zcode-hud .zh-empty{padding:6px 10px;color:#6b7280}';
     css += '@keyframes zh-pulse{0%,100%{opacity:1}50%{opacity:.35}}';
     var permAC=null,permKnown={},permInit=0,permFound={},permDismissed={};
-var st=document.createElement('style');st.id='zcode-ui-patch-v21';st.textContent=css;
+var st=document.createElement('style');st.id='zcode-ui-patch-v22';st.textContent=css;
     (document.head||document.documentElement).appendChild(st);
     var doneMap={}, runningTitles={}, dirty=0;
-    var VER='v21-jump',D={rows:0,spins:0,run:0,done:0,sel:0,crown:0,err1:'',err2:''};
+    var VER='v22',D={};
     var HUDR=[],HUDD=[],HUDT0=null,HUDel=null;
     try{doneMap=JSON.parse(localStorage.getItem(LSKEY)||'{}')||{};}catch(e){}
     function save(){try{
@@ -119,7 +119,6 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v21';st.textContent
         var t=titleOf(row);
         if(t){ cur[t]=1; if(doneMap[t]!==undefined){ delete doneMap[t]; dirty=1; } }
       }
-      D.spins=spins.length;D.run=running.length;
       /* 完成检测：上一轮在跑、这一轮不在跑的标题 => 记入 doneMap */
       for(var t2 in runningTitles){
         if(!cur[t2] && doneMap[t2]===undefined && !(dismissTs[t2]>Date.now()-12000)){ doneMap[t2]=Date.now(); dirty=1; }
@@ -280,15 +279,8 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v21';st.textContent
       }catch(e){}
     },true);
     var timer=null;
-    function schedule(){if(timer)return;timer=setTimeout(function(){timer=null;try{scan();}catch(e){D.err1=String(e&&e.message||e).slice(0,90);}},250);}
-    function updateDiag(){
-      try{
-        var el=document.getElementById('zcode-th-diag');
-        if(!el){el=document.createElement('div');el.id='zcode-th-diag';el.style.cssText='position:fixed;right:8px;bottom:8px;z-index:2147483647;background:rgba(0,0,0,.72);color:#4ade80;font:10px/1.5 Menlo,monospace;padding:5px 8px;border-radius:6px;pointer-events:none;white-space:pre';(document.body||document.documentElement).appendChild(el);}
-        el.textContent='TH '+VER+' rows:'+D.rows+' spins:'+D.spins+'\nrun:'+D.run+' done:'+D.done+' sel:'+D.sel+' crown:'+D.crown+(D.err1?'\nscan!'+D.err1:'')+(D.err2?'\nas!'+D.err2:'');
-      }catch(e){}
-    }
-    function start(){scan();applyStates();updateDiag();setInterval(function(){try{applyStates();}catch(e){D.err2=String(e&&e.message||e).slice(0,90);}updateDiag();},3000);new MutationObserver(schedule).observe(document.body,{subtree:true,childList:true});updateDiag();}
+    function schedule(){if(timer)return;timer=setTimeout(function(){timer=null;scan();},250);}
+    function start(){scan();applyStates();updateHUD();updateTitle();setInterval(function(){applyStates();updateHUD();updateTitle();},3000);new MutationObserver(schedule).observe(document.body,{subtree:true,childList:true});}
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
   }catch(e){}
 })();
