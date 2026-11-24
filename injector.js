@@ -1,6 +1,6 @@
 ;(function(){
   try{
-    if(window.__zcodeRunningHL==='v17') return; window.__zcodeRunningHL='v17';
+    if(window.__zcodeRunningHL==='v18') return; window.__zcodeRunningHL='v18';
     var HL='zcode-running-hl',GN='zcode-done-hl',LSKEY='zcode-done-map-v1';
     var CODEX_ROW='[data-app-action-sidebar-thread-row]',CODEX_TITLE='[data-app-action-sidebar-thread-title]';
     var LEGACY_ROW='[data-grouped-task-key],li,[role="button"],article,button';
@@ -30,11 +30,28 @@
     var PERMP='zcode-perm-pulse';
     css += '.'+PERMP+'{outline:4px solid #d946ef!important;outline-offset:-1px!important;animation:zcode-perm-pulse-k .9s ease-in-out infinite!important}';
     css += '@keyframes zcode-perm-pulse-k{0%,100%{outline-color:rgba(217,70,239,1);background-color:rgba(217,70,239,.3)}50%{outline-color:rgba(217,70,239,.12);background-color:rgba(217,70,239,.06)}}';
+    css += '#zcode-hud{position:fixed;top:16px;right:16px;width:232px;z-index:2147483646;background:rgba(15,18,25,.88);color:#e5e7eb;border:1px solid rgba(255,255,255,.14);border-radius:10px;font:11px/1.5 -apple-system,Menlo,monospace;box-shadow:0 6px 24px rgba(0,0,0,.45);overflow:hidden;user-select:none}';
+    css += '#zcode-hud .zh-head{display:flex;align-items:center;gap:6px;padding:7px 10px;background:rgba(255,255,255,.06);cursor:grab;font-weight:600}';
+    css += '#zcode-hud .zh-head:active{cursor:grabbing}';
+    css += '#zcode-hud .zh-collapse{margin-left:auto;cursor:pointer;color:#9ca3af;padding:0 3px;border-radius:4px}';
+    css += '#zcode-hud .zh-collapse:hover{color:#fff;background:rgba(255,255,255,.12)}';
+    css += '#zcode-hud .zh-body{max-height:300px;overflow-y:auto;padding:4px 0}';
+    css += '#zcode-hud .zh-sec{padding:4px 10px 2px;color:#9ca3af;font-size:10px;letter-spacing:.5px}';
+    css += '#zcode-hud .zh-item{display:flex;align-items:center;gap:7px;padding:4px 10px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}';
+    css += '#zcode-hud .zh-item:hover{background:rgba(255,255,255,.08)}';
+    css += '#zcode-hud .zh-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}';
+    css += '#zcode-hud .zh-run .zh-dot{background:#3b82f6;animation:zh-pulse 1.2s ease-in-out infinite}';
+    css += '#zcode-hud .zh-done .zh-dot{background:#22c559}';
+    css += '#zcode-hud .zh-done:hover{color:#fca5a5}';
+    css += '#zcode-hud.zh-min .zh-body{display:none}';
+    css += '#zcode-hud .zh-empty{padding:6px 10px;color:#6b7280}';
+    css += '@keyframes zh-pulse{0%,100%{opacity:1}50%{opacity:.35}}';
     var permAC=null,permKnown={},permInit=0,permFound={},permDismissed={};
-var st=document.createElement('style');st.id='zcode-ui-patch-v17';st.textContent=css;
+var st=document.createElement('style');st.id='zcode-ui-patch-v18';st.textContent=css;
     (document.head||document.documentElement).appendChild(st);
     var doneMap={}, runningTitles={}, dirty=0;
-    var VER='v17-diag',D={rows:0,spins:0,run:0,done:0,sel:0,crown:0,err1:'',err2:''};
+    var VER='v18-hud',D={rows:0,spins:0,run:0,done:0,sel:0,crown:0,err1:'',err2:''};
+    var HUDR=[],HUDD=[],HUDT0=null,HUDel=null;
     try{doneMap=JSON.parse(localStorage.getItem(LSKEY)||'{}')||{};}catch(e){}
     function save(){try{
       var ks=Object.keys(doneMap);
@@ -136,6 +153,56 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v17';st.textContent
         }
       }catch(e){}
     }
+    function hudDismiss(t){
+      delete doneMap[t]; delete doneMap['title:'+t]; save();
+      var rows=document.querySelectorAll('.'+GN),i;
+      for(i=0;i<rows.length;i++){ if(titleOf(rows[i])===t) rows[i].classList.remove(GN); }
+      updateHUD();
+    }
+    function makeHUD(){
+      if(HUDel||!document.body) return;
+      HUDel=document.createElement('div'); HUDel.id='zcode-hud';
+      HUDel.innerHTML='<div class="zh-head"><span class="zh-title">任务状态</span><span class="zh-counts"></span><span class="zh-collapse">—</span></div><div class="zh-body"></div>';
+      document.body.appendChild(HUDel);
+      try{
+        var x=localStorage.getItem('zh-x'),y=localStorage.getItem('zh-y');
+        if(x){HUDel.style.left=x;HUDel.style.top=y;HUDel.style.right='auto';}
+        if(localStorage.getItem('zh-c')==='1') HUDel.classList.add('zh-min');
+      }catch(e){}
+      var head=HUDel.querySelector('.zh-head'),col=HUDel.querySelector('.zh-collapse');
+      col.addEventListener('click',function(e){ e.stopPropagation(); HUDel.classList.toggle('zh-min'); try{localStorage.setItem('zh-c',HUDel.classList.contains('zh-min')?'1':'0');}catch(err){} });
+      head.addEventListener('pointerdown',function(e){
+        if(e.target===col) return;
+        var r=HUDel.getBoundingClientRect(),ox=e.clientX-r.left,oy=e.clientY-r.top;
+        function mv(e2){ var x=Math.max(0,Math.min(window.innerWidth-80,e2.clientX-ox)),y=Math.max(0,Math.min(window.innerHeight-40,e2.clientY-oy)); HUDel.style.left=x+'px'; HUDel.style.top=y+'px'; HUDel.style.right='auto'; }
+        function up(){ document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up); try{localStorage.setItem('zh-x',HUDel.style.left);localStorage.setItem('zh-y',HUDel.style.top);}catch(err){} }
+        document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up);
+      });
+      var body=HUDel.querySelector('.zh-body');
+      body.addEventListener('click',function(e){
+        var it=e.target.closest('.zh-done'); if(!it) return;
+        hudDismiss(it.getAttribute('data-t'));
+      });
+    }
+    function updateHUD(){
+      try{
+        makeHUD(); if(!HUDel) return;
+        var cnt=HUDel.querySelector('.zh-counts');
+        if(cnt) cnt.textContent='⟳'+HUDR.length+' ✓'+HUDD.length;
+        var body=HUDel.querySelector('.zh-body'); if(!body) return;
+        var h='';
+        if(HUDR.length){ h+='<div class="zh-sec">执行中</div>'; for(var i=0;i<HUDR.length;i++) h+='<div class="zh-item zh-run"><span class="zh-dot"></span><span>'+HUDR[i].replace(/</g,'&lt;')+'</span></div>'; }
+        if(HUDD.length){ h+='<div class="zh-sec">完成未读（点击清除）</div>'; for(var j=0;j<HUDD.length;j++) h+='<div class="zh-item zh-done" data-t="'+HUDD[j].replace(/"/g,'&quot;')+'"><span class="zh-dot"></span><span>'+HUDD[j].replace(/</g,'&lt;')+'</span></div>'; }
+        if(!HUDR.length&&!HUDD.length) h='<div class="zh-empty">暂无执行中 / 未读任务</div>';
+        body.innerHTML=h;
+      }catch(e){}
+    }
+    function updateTitle(){
+      try{
+        if(HUDT0===null) HUDT0=document.title;
+        if(String(document.title).indexOf('⟳')<0||true) document.title=HUDT0+'（⟳'+HUDR.length+' ✓'+HUDD.length+'）';
+      }catch(e){}
+    }
     function applyStates(){
       var lastKey=null,maxV=0;
       for(var k0 in doneMap){ if(doneMap[k0]>maxV){maxV=doneMap[k0];lastKey=k0;} }
@@ -145,6 +212,7 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v17';st.textContent
         for(i=0;i<rowsE.length&&seen.size<300;i++){ if(!seen.has(rowsE[i])) seen.add(rowsE[i]); }
       }
       var cRun=0,cDone=0,cSelC=0,cCrown=0;
+      var HUDR=[],HUDD=[];
       var permFound={};
       seen.forEach(function(row){
         var running=row.classList.contains(HL);
@@ -153,6 +221,9 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v17';st.textContent
         if(sel)cSelC++;
         var want = running?HL : done?GN : null;
         if(want===HL)cRun++;else if(want===GN)cDone++;
+        var rt0=titleOf(row);
+        if(want===HL&&rt0)HUDR.push(rt0);
+        if(want===GN&&rt0)HUDD.push(rt0);
         [HL,GN,FRESH,LD].forEach(function(c){ if(c!==want) row.classList.remove(c); });
         if(want) row.classList.add(want);
         if(want===GN){
@@ -180,6 +251,7 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v17';st.textContent
       if(permInit&&newly.length) permSound();
       if(!permInit) permInit=1;
       permKnown=permFound;
+      updateHUD(); updateTitle();
     }
 
     document.addEventListener('click',function(ev){
