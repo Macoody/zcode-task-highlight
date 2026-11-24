@@ -1,6 +1,6 @@
 ;(function(){
   try{
-    if(window.__zcodeRunningHL==='v18') return; window.__zcodeRunningHL='v18';
+    if(window.__zcodeRunningHL==='v19') return; window.__zcodeRunningHL='v19';
     var HL='zcode-running-hl',GN='zcode-done-hl',LSKEY='zcode-done-map-v1';
     var CODEX_ROW='[data-app-action-sidebar-thread-row]',CODEX_TITLE='[data-app-action-sidebar-thread-title]';
     var LEGACY_ROW='[data-grouped-task-key],li,[role="button"],article,button';
@@ -47,10 +47,10 @@
     css += '#zcode-hud .zh-empty{padding:6px 10px;color:#6b7280}';
     css += '@keyframes zh-pulse{0%,100%{opacity:1}50%{opacity:.35}}';
     var permAC=null,permKnown={},permInit=0,permFound={},permDismissed={};
-var st=document.createElement('style');st.id='zcode-ui-patch-v18';st.textContent=css;
+var st=document.createElement('style');st.id='zcode-ui-patch-v19';st.textContent=css;
     (document.head||document.documentElement).appendChild(st);
     var doneMap={}, runningTitles={}, dirty=0;
-    var VER='v18-hud',D={rows:0,spins:0,run:0,done:0,sel:0,crown:0,err1:'',err2:''};
+    var VER='v19-hud',D={rows:0,spins:0,run:0,done:0,sel:0,crown:0,err1:'',err2:''};
     var HUDR=[],HUDD=[],HUDT0=null,HUDel=null;
     try{doneMap=JSON.parse(localStorage.getItem(LSKEY)||'{}')||{};}catch(e){}
     function save(){try{
@@ -212,7 +212,6 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v18';st.textContent
         for(i=0;i<rowsE.length&&seen.size<300;i++){ if(!seen.has(rowsE[i])) seen.add(rowsE[i]); }
       }
       var cRun=0,cDone=0,cSelC=0,cCrown=0;
-      var HUDR=[],HUDD=[];
       var permFound={};
       seen.forEach(function(row){
         var running=row.classList.contains(HL);
