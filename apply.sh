@@ -122,6 +122,10 @@ patch_app() {
   fi
   rm -rf "$WORK"
 
+  # 删除 safeStorage 钥匙串条目：重签后旧 ACL 必然失效导致每次启动弹两次密码；
+  # 删除后应用下次启动静默重建（绑定当前签名），代价是需重新登录一次账号
+  security delete-generic-password -s "ZCode Credential Encryption" >/dev/null 2>&1 || true
+
   echo "✍️ 重新签名 ..."
   # 固定 identifier-only DR：TCC 授权（屏幕控制等）绑定应用标识而非签名哈希，重签不再破坏授权
   local REQ='=designated => identifier "dev.zcode.app"'
