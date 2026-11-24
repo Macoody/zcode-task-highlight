@@ -90,3 +90,8 @@ v6 与 v7 的**全部代码差异**就三处：① CSS 增加了 keyframes 动�
 - 用户已在应用内自升至 **4.0.0**，守护自动补丁成功（未需人工干预）。共享注入器升级 **v11b**：新增选中任务琥珀色高亮（`zcode-sel-hl`，检测行原生 `bg-selected`），状态优先级 执行中>选中>已完成，applyStates 状态机保证单行单类
 - 教训一则：apply.sh 旧 strip_old_injector（node 版）曾静默失败导致新旧注入器叠加，已重写为 python3 版并实测；剥离逻辑 = 从守卫 `window.__zcodeRunningHL` 往前找最近 `(function(){` 或 `!function(){` 起点整段截断
 - 语法校验注意：主 bundle 是 ES module，`new Function()` 校验必假阳性，要用 `node --check xxx.mjs`
+
+## 更新（2026-11-23 三）
+
+- **v12**：新增"刚完成"强化态——完成 30 分钟内行显示鲜绿背景 + 金黄边框闪烁（`zcode-fresh-hl`，`FRESH_MS=30*60*1000` 可调），到期自动回落普通绿色；点击已读规则不变。`prefers-reduced-motion` 下金框静态不闪
+- MARK 全线同步 `zcode-ui-patch-v12`
