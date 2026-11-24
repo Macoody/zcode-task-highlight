@@ -1,6 +1,6 @@
 ;(function(){
   try{
-    if(window.__zcodeRunningHL==='v22') return; window.__zcodeRunningHL='v22';
+    if(window.__zcodeRunningHL==='v23') return; window.__zcodeRunningHL='v23';
     var HL='zcode-running-hl',GN='zcode-done-hl',LSKEY='zcode-done-map-v1';
     var CODEX_ROW='[data-app-action-sidebar-thread-row]',CODEX_TITLE='[data-app-action-sidebar-thread-title]';
     var LEGACY_ROW='[data-grouped-task-key],li,[role="button"],article,button';
@@ -47,10 +47,10 @@
     css += '#zcode-hud .zh-empty{padding:6px 10px;color:#6b7280}';
     css += '@keyframes zh-pulse{0%,100%{opacity:1}50%{opacity:.35}}';
     var permAC=null,permKnown={},permInit=0,permFound={},permDismissed={};
-var st=document.createElement('style');st.id='zcode-ui-patch-v22';st.textContent=css;
+var st=document.createElement('style');st.id='zcode-ui-patch-v23';st.textContent=css;
     (document.head||document.documentElement).appendChild(st);
     var doneMap={}, runningTitles={}, dirty=0;
-    var VER='v22',D={};
+    var VER='v23',D={};
     var HUDR=[],HUDD=[],HUDT0=null,HUDel=null;
     try{doneMap=JSON.parse(localStorage.getItem(LSKEY)||'{}')||{};}catch(e){}
     function save(){try{
@@ -87,6 +87,12 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v22';st.textContent
       if((row.textContent||'').length>300)return false;
       return !!titleNode(row);
     }
+    /* 真任务行：带任务键属性（应用其它角落的 li/button 加载圈不算数） */
+    function isRealRow(row){
+      if(!row||!row.matches)return false;
+      if(row.matches(CODEX_ROW))return true;
+      return !!(row.getAttribute&&(row.getAttribute('data-task-item-key')||row.getAttribute('data-grouped-task-key')));
+    }
     function doneTS(row){
       var k=keyOf(row),t=titleOf(row),best=0,v;
       if(k&&(v=doneMap[k])!==undefined&&v>best)best=v;
@@ -113,7 +119,7 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v22';st.textContent
     function scan(){
       var spins=document.querySelectorAll('.animate-spin'), i, row;
       var running=[], cur={};
-      for(i=0;i<spins.length;i++){ row=rowOf(spins[i]); if(isTaskRow(row)&&running.indexOf(row)<0) running.push(row); }
+      for(i=0;i<spins.length;i++){ row=rowOf(spins[i]); if(isRealRow(row)&&running.indexOf(row)<0) running.push(row); }
       for(i=0;i<running.length;i++){
         row=running[i]; row.classList.remove(GN); row.classList.add(HL);
         var t=titleOf(row);
@@ -224,7 +230,7 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v22';st.textContent
         rowsE=document.querySelectorAll(pools[pi]);
         for(i=0;i<rowsE.length&&seen.size<300;i++){ if(!seen.has(rowsE[i])) seen.add(rowsE[i]); }
       }
-      var cRun=0,cDone=0,cSelC=0,cCrown=0;
+      var cRun=0,cDone=0,cSelC=0,cCrown=0,nR=[];
       var permFound={};
       seen.forEach(function(row){
         var running=row.classList.contains(HL);
@@ -236,8 +242,7 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v22';st.textContent
         if(!isRealRow) want = null;
         if(want===HL)cRun++;else if(want===GN)cDone++;
         var rt0=titleOf(row);
-        if(want===HL&&rt0)HUDR.push(rt0);
-        if(want===GN&&rt0)HUDD.push(rt0);
+        if(want===HL&&rt0)nR.push(rt0);
         [HL,GN,FRESH,LD].forEach(function(c){ if(c!==want) row.classList.remove(c); });
         if(want) row.classList.add(want);
         if(want===GN){
@@ -257,8 +262,16 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v22';st.textContent
         if(pk&&!isPerm(row)&&permDismissed[pk]!==undefined){ delete permDismissed[pk]; }
       });
       D.rows=seen.size;D.run=cRun;D.done=cDone;D.sel=cSelC;D.crown=cCrown;
-      HUDR=HUDR.filter(function(t,i){return HUDR.indexOf(t)===i;});
-      HUDD=HUDD.filter(function(t,i){return HUDD.indexOf(t)===i;});
+      /* v23 修复：HUD 两个列表每轮按当前真实状态重建，不再只增不减 */
+      HUDR=nR.filter(function(t,i){return nR.indexOf(t)===i;});
+      var dl=[],seenT={},nD=[];
+      for(var dk in doneMap){
+        if(dk.indexOf('codex:')===0)continue;
+        dl.push([doneMap[dk],dk.indexOf('title:')===0?dk.slice(6):dk]);
+      }
+      dl.sort(function(a,b){return b[0]-a[0];});
+      for(var di=0;di<dl.length&&nD.length<30;di++){ if(!seenT[dl[di][1]]){seenT[dl[di][1]]=1;nD.push(dl[di][1]);} }
+      HUDD=nD;
       var newly=[];
       for(var fk in permFound){
         if(permInit&&permKnown[fk]===undefined) newly.push(permFound[fk]);
