@@ -109,3 +109,9 @@ v6 与 v7 的**全部代码差异**就三处：① CSS 增加了 keyframes 动�
 ## 更新（2026-11-24 三）
 
 - **v16**：①皇冠光芒改为行内可见效果（金色 inset 圆环呼吸+内部光晕，inset 阴影不会被相邻行背景/滚动容器裁剪——v14 的外溢 glow 曾因此不可见）；②等待确认的品红脉冲改为**持续到点击**（permDismissed 集合记录已读，状态退出后自动清除），声音仍为 3 秒
+
+## 更新（2026-11-24 四）
+
+- 重签名的另一连锁反应：Electron safeStorage 密钥条目（"ZCode Credential Encryption"）的钥匙串 ACL 失效 → 每次启动两次登录钥匙串密码弹窗，且「始终允许」无效（ACL 引用旧签名）
+- 解法：`security delete-generic-password -s "ZCode Credential Encryption"` 删除条目 → 应用下次启动静默重建（ACL 绑定当前签名 + identifier DR，永不再弹）→ 代价是 credentials.json 全部需重新登录一次
+- 未来如遇同款弹窗：先点「始终允许」（identifier DR 下应生效）；无效再走删除重建
