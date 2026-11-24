@@ -123,7 +123,11 @@ patch_app() {
   rm -rf "$WORK"
 
   echo "✍️ 重新签名 ..."
-  codesign --force --deep -s - "$APP" || { echo "❌ 签名失败，请运行 ./rollback.sh $KEY 恢复"; exit 1; }
+  # 固定 identifier-only DR：TCC 授权（屏幕控制等）绑定应用标识而非签名哈希，重签不再破坏授权
+  local REQ='=designated => identifier "dev.zcode.app"'
+  codesign --force --deep -s - --requirements "$REQ" "$APP" >/dev/null 2>&1 || true
+  codesign --force --deep -s - --requirements "$REQ" "$APP" || { echo "❌ 签名失败，请运行 ./rollback.sh $KEY 恢复"; exit 1; }
+  codesign -v --deep "$APP" || echo "⚠️ 深度校验警告（两遍深签后应通过）"
   echo "✅ $APP_NAME 完成！请完全退出该应用后重新打开。"
 }
 

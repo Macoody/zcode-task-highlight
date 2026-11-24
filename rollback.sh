@@ -21,7 +21,9 @@ restore_app() {
     rm -rf "$APP/Contents/Resources/app.asar.unpacked"
     cp -R "$UBAK" "$APP/Contents/Resources/app.asar.unpacked"
   fi
-  codesign --force --deep -s - "$APP"
+  REQ='=designated => identifier "dev.zcode.app"'
+  codesign --force --deep -s - --requirements "$REQ" "$APP" >/dev/null 2>&1 || true
+  codesign --force --deep -s - --requirements "$REQ" "$APP"
   echo "✅ [$KEY] 已回滚，请完全退出该应用后重新打开。"
 }
 
