@@ -95,3 +95,8 @@ v6 与 v7 的**全部代码差异**就三处：① CSS 增加了 keyframes 动�
 
 - **v12**：新增"刚完成"强化态——完成 30 分钟内行显示鲜绿背景 + 金黄边框闪烁（`zcode-fresh-hl`，`FRESH_MS=30*60*1000` 可调），到期自动回落普通绿色；点击已读规则不变。`prefers-reduced-motion` 下金框静态不闪
 - MARK 全线同步 `zcode-ui-patch-v12`
+
+## 更新（2026-11-24）
+
+- **v14**：新增"最后完成者"皇冠——doneMap 中时间戳最新的任务行叠加 `zcode-last-done-hl`（`zcode-last-radiance` 大范围金色光芒呼吸，含绿条+双层金晕），新任务完成后皇冠自动转移；与其他状态叠加规则：皇冠只出现在 GN（已完成）行上，FRESH 金框闪烁 + 皇冠光芒可同时存在（combo 规则合并动画列表）
+- 注意动画列表的 CSS 语义：同一元素多个 animation 动画同一属性时列表靠后者胜出，radiance 的 keyframes 必须包含绿条（是 fresh-glow 的超集）

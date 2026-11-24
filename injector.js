@@ -1,6 +1,6 @@
 ;(function(){
   try{
-    if(window.__zcodeRunningHL==='v12') return; window.__zcodeRunningHL='v12';
+    if(window.__zcodeRunningHL==='v14') return; window.__zcodeRunningHL='v14';
     var HL='zcode-running-hl',GN='zcode-done-hl',LSKEY='zcode-done-map-v1';
     var CODEX_ROW='[data-app-action-sidebar-thread-row]',CODEX_TITLE='[data-app-action-sidebar-thread-title]';
     var LEGACY_ROW='[data-grouped-task-key],li,[role="button"],article,button';
@@ -15,11 +15,19 @@
     }
         var SEL='zcode-sel-hl';
     css += '.'+SEL+'{background-color:rgba(245,158,11,.24)!important;box-shadow:inset 3px 0 0 0 #f59e0b!important}';
+    css += '.'+HL+'.'+SEL+'{background-color:rgba(59,130,246,.10)!important;background-image:linear-gradient(100deg,transparent 25%,rgba(59,130,246,.32) 50%,transparent 75%)!important;background-size:200% 100%!important;background-repeat:no-repeat!important;animation:zcode-th-flow 1.8s linear infinite, zcode-sel-bar-blink 1s ease-in-out infinite!important;box-shadow:inset 3px 0 0 0 #f59e0b!important}';
+    css += '@keyframes zcode-sel-bar-blink{0%,100%{box-shadow:inset 3px 0 0 0 #f59e0b}50%{box-shadow:inset 3px 0 0 0 rgba(251,191,36,.15)}}';
     var FRESH='zcode-fresh-hl', FRESH_MS=30*60*1000;
-    css += '.'+FRESH+'{background-color:rgba(34,197,94,.38)!important;outline:3px solid #fbbf24!important;outline-offset:-1px!important;animation:zcode-fresh-blink 1.2s ease-in-out infinite}';
-    css += '@keyframes zcode-fresh-blink{0%,100%{outline-color:rgba(251,191,36,1)}50%{outline-color:rgba(251,191,36,.12)}}';
+    css += '.'+FRESH+'{background-color:rgba(34,197,94,.38)!important;outline:3px solid #fbbf24!important;outline-offset:-1px!important;animation:zcode-fresh-blink .9s steps(1,end) infinite, zcode-fresh-glow 1.1s ease-in-out infinite!important}';
+    css += '@keyframes zcode-fresh-blink{0%,49%{outline-color:#fbbf24}50%,100%{outline-color:rgba(251,191,36,.08)}}';
+    css += '@keyframes zcode-fresh-glow{0%,100%{box-shadow:inset 3px 0 0 0 #22c559,0 0 0 0 rgba(251,191,36,.65)}60%{box-shadow:inset 3px 0 0 0 #22c559,0 0 12px 3px rgba(251,191,36,.2)}}';
     css += '@media (prefers-reduced-motion:reduce){.'+FRESH+'{animation:none!important}}';
-var st=document.createElement('style');st.id='zcode-ui-patch-v12';st.textContent=css;
+    var LD='zcode-last-done-hl';
+    css += '.'+LD+'{animation:zcode-last-radiance 2.4s ease-in-out infinite!important}';
+    css += '.'+LD+'.'+FRESH+'{animation:zcode-fresh-blink .9s steps(1,end) infinite, zcode-last-radiance 2.4s ease-in-out infinite!important}';
+    css += '@keyframes zcode-last-radiance{0%,100%{box-shadow:inset 3px 0 0 0 #22c559,0 0 8px 2px rgba(251,191,36,.5),0 0 22px 7px rgba(251,191,36,.3)}55%{box-shadow:inset 3px 0 0 0 #22c559,0 0 16px 6px rgba(251,191,36,.85),0 0 44px 16px rgba(251,191,36,.5)}}';
+    css += '@media (prefers-reduced-motion:reduce){.'+LD+'{animation:none!important}}';
+var st=document.createElement('style');st.id='zcode-ui-patch-v14';st.textContent=css;
     (document.head||document.documentElement).appendChild(st);
     var doneMap={}, runningTitles={}, dirty=0;
     try{doneMap=JSON.parse(localStorage.getItem(LSKEY)||'{}')||{};}catch(e){}
@@ -105,13 +113,25 @@ var st=document.createElement('style');st.id='zcode-ui-patch-v12';st.textContent
         rows=document.querySelectorAll(pools[pi]);
         for(i=0;i<rows.length&&seen.size<300;i++){ if(!seen.has(rows[i])) seen.add(rows[i]); }
       }
+      var lastKey=null,maxV=0;
+      for(var k in doneMap){ if(doneMap[k]>maxV){maxV=doneMap[k];lastKey=k;} }
       seen.forEach(function(row){
         var running=row.classList.contains(HL);
         var sel=row.classList.contains('bg-selected');
-        var done=!running&&!sel&&isDone(row);
-        var want = running?HL : sel?SEL : done?GN : null;
-        [HL,SEL,GN,FRESH].forEach(function(c){ if(c!==want) row.classList.remove(c); });
+        var done=!running&&isDone(row);
+        var want = running?HL : done?GN : null;
+        [HL,GN,FRESH,LD].forEach(function(c){ if(c!==want) row.classList.remove(c); });
         if(want) row.classList.add(want);
+        if(want===GN){
+          var fresh = Date.now()-doneTS(row) < FRESH_MS;
+          if(fresh&&!row.classList.contains(FRESH)) row.classList.add(FRESH);
+          if(!fresh) row.classList.remove(FRESH);
+          var k=keyOf(row),t=titleOf(row),isLast = lastKey!==null&&(k===lastKey||(t&&(t===lastKey||'title:'+t===lastKey)));
+          if(isLast&&!row.classList.contains(LD)) row.classList.add(LD);
+          if(!isLast) row.classList.remove(LD);
+        } else row.classList.remove(LD);
+        if(sel&&!row.classList.contains(SEL)) row.classList.add(SEL);
+        if(!sel) row.classList.remove(SEL);
         if(want===GN){
           var fresh = Date.now()-doneTS(row) < FRESH_MS;
           if(fresh&&!row.classList.contains(FRESH)) row.classList.add(FRESH);
